@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VerifAI - KYC Document Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --background: 220 13% 91%;
+            --foreground: 220 9% 26%;
+            --card: 220 13% 98%;
+            --card-foreground: 220 9% 26%;
+            --popover: 220 13% 98%;
+            --popover-foreground: 220 9% 26%;
+            --primary: 142.1 76.2% 36.3%;
+            --primary-foreground: 355.7 100% 97.3%;
+            --secondary: 220 9% 46%;
+            --secondary-foreground: 0 0% 100%;
+            --muted: 220 9% 61%;
+            --muted-foreground: 220 9% 36%;
+            --accent: 220 13% 94%;
+            --accent-foreground: 220 9% 26%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 0 0% 100%;
+            --border: 220 13% 86%;
+            --input: 220 13% 89%;
+            --ring: 142.1 76.2% 36.3%;
+            --radius: 0.5rem;
+        }
+        body.dark {
+            --background: 220 14% 10%;
+            --foreground: 210 20% 98%;
+            --card: 220 13% 15%;
+            --card-foreground: 210 20% 98%;
+            --popover: 220 14% 10%;
+            --popover-foreground: 210 20% 98%;
+            --primary: 142.1 70.6% 45.3%;
+            --primary-foreground: 144.9 80.4% 10%;
+            --secondary: 215 14% 34%;
+            --secondary-foreground: 210 20% 98%;
+            --muted: 215 14% 34%;
+            --muted-foreground: 215.4 16.3% 56.9%;
+            --accent: 215 14% 24%;
+            --accent-foreground: 210 20% 98%;
+            --destructive: 0 62.8% 50.6%;
+            --destructive-foreground: 210 20% 98%;
+            --border: 215 14% 24%;
+            --input: 215 14% 24%;
+            --ring: 142.1 70.6% 45.3%;
+        }
+        * { border-color: hsl(var(--border)); }
+        body { background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+        body.dark { background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+        .bg-card { background-color: hsl(var(--card)); color: hsl(var(--card-foreground)); }
+        .bg-background { background-color: hsl(var(--background)); }
+        .text-primary { color: hsl(var(--primary)); }
+        .bg-primary { background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+        .bg-destructive { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
+        .text-destructive { color: hsl(var(--destructive)); }
+        .border-border { border-color: hsl(var(--border)); }
+        .bg-accent { background-color: hsl(var(--accent)); }
+        .text-muted-foreground { color: hsl(var(--muted-foreground)); }
+        .font-headline { font-family: system-ui, -apple-system, sans-serif; }
+        .card { background-color: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .input-field { background-color: hsl(var(--input)); border: 1px solid hsl(var(--border)); border-radius: 0.375rem; padding: 0.5rem 0.75rem; color: hsl(var(--foreground)); }
+        .input-field:focus { outline: none; border-color: hsl(var(--ring)); box-shadow: 0 0 0 3px hsla(var(--ring),0.1); }
+        .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-weight: 500; cursor: pointer; transition: all 0.2s; border: none; font-family: inherit; }
+        .btn-primary { background-color: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-destructive { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
+        .btn-destructive:hover { opacity: 0.9; }
+        .badge { display: inline-block; padding: 0.25rem 0.625rem; border-radius: 0.375rem; font-size: 0.875rem; font-weight: 600; }
+        .badge-success { background-color: #16a34a; color: white; }
+        .badge-warning { background-color: #eab308; color: white; }
+        .badge-destructive { background-color: hsl(var(--destructive)); color: hsl(var(--destructive-foreground)); }
+        .badge-secondary { background-color: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); }
+        .spinner { border: 4px solid hsl(var(--accent)); border-top-color: hsl(var(--primary)); border-radius: 50%; width: 2rem; height: 2rem; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden { display: none; }
+        .alert { padding: 1rem; border-radius: 0.375rem; border: 1px solid; margin-bottom: 1rem; }
+        .alert-destructive { background-color: rgba(239, 68, 68, 0.1); border-color: hsl(var(--destructive)); color: hsl(var(--destructive)); }
+        .file-preview-container { display: grid; grid-template-columns: repeat(auto-fill,minmax(150px,1fr)); gap:0.5rem; max-height:250px; overflow-y:auto; border:1px solid hsl(var(--border)); border-radius:0.375rem; padding:0.5rem; }
+        .file-preview { position: relative; aspect-ratio:16/9; border-radius:0.375rem; overflow:hidden; background-color:hsl(var(--accent)); }
+        .file-preview img { width:100%; height:100%; object-fit:contain; }
+        .file-preview .remove-btn { position:absolute; top:0.25rem; right:0.25rem; width:1.25rem; height:1.25rem; padding:0; border-radius:50%; background-color:hsl(var(--destructive)); color:hsl(var(--destructive-foreground)); border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.75rem; }
+        .section-title { font-size:1.5rem; font-weight:bold; margin-bottom:0.5rem; }
+        .section-description { color:hsl(var(--muted-foreground)); margin-bottom:1.5rem; }
+        .accordion-trigger { width: 100%; padding: 1rem; background-color: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-radius: 0.375rem; text-align: left; cursor: pointer; font-weight: 500; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+        .accordion-trigger:hover { background-color: hsl(var(--accent)); }
+        .accordion-trigger.open { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+        .accordion-content { display: none; padding: 1rem; background-color: hsl(var(--card)); border: 1px solid hsl(var(--border)); border-top: none; border-bottom-left-radius: 0.375rem; border-bottom-right-radius: 0.375rem; }
+        .accordion-content.open { display: block; }
+        .category-legit { background-color: #16a34a; color: white; }
+        .category-suspicious { background-color: #f59e0b; color: white; }
+        .category-photocopy { background-color: #eab308; color: white; }
+        .category-format-invalid { background-color: #f97316; color: white; }
+        .category-fraud { background-color: #dc2626; color: white; }
+        .category-damaged { background-color: #9333ea; color: white; }
+        .category-error { background-color: #6b7280; color: white; }
+        .verification-checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+        .check-item { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; background-color: hsl(var(--accent)); border-radius: 0.375rem; }
+        .check-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+        .check-pass { color: #16a34a; }
+        .check-fail { color: #dc2626; }
+        .check-label { font-size: 0.875rem; }
+        .language-badge { display: inline-block; padding: 0.125rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; background-color: hsl(var(--accent)); color: hsl(var(--accent-foreground)); margin-left: 0.5rem; }
+    </style>
+</head>
+<body class="dark">
+<div class="flex min-h-screen flex-col items-center justify-center p-4 md:p-8">
+    <!-- Header -->
+    <header class="flex h-16 items-center justify-center mb-8">
+        <div class="flex flex-col items-center gap-1 text-center">
+            <div class="flex items-center gap-2">
+                <svg class="h-6 w-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                </svg>
+                <h1 class="font-headline text-xl font-bold tracking-tight">VerifAI</h1>
+            </div>
+            <p class="font-headline text-lg text-muted-foreground">KYC Document Verification</p>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="w-full max-w-3xl space-y-6">
+        <!-- Upload Section -->
+        <div id="uploadSection" class="card bg-card border-border shadow-2xl">
+            <h2 class="section-title font-headline text-2xl tracking-tight">Verify Documents</h2>
+            <p class="section-description">Upload documents first, then select type and analyze.</p>
+            
+            <!-- Step 1: Upload Files -->
+            <div class="space-y-4 mb-6">
+                <h3 class="text-lg font-semibold">Step 1: Upload Files</h3>
+                <div class="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer bg-accent/30" id="uploadDropZone">
+                    <input type="file" id="documentFile" multiple accept="image/*,.pdf" class="hidden"/>
+                    <svg class="mx-auto h-8 w-8 text-muted-foreground mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <p class="text-sm text-muted-foreground">Click or drag files here</p>
+                    <p class="text-xs text-muted-foreground mt-1">PNG, JPG, PDF up to 5MB</p>
+                </div>
+                <div id="previewContainer" class="hidden">
+                    <div class="file-preview-container" id="filePreviewList"></div>
+                </div>
+                <button type="button" id="uploadBtn" class="btn btn-primary w-full" disabled>Upload Files</button>
+            </div>
+
+            <!-- Step 2: Select Type and Analyze -->
+            <div id="analyzeSection" class="hidden space-y-4">
+                <h3 class="text-lg font-semibold">Step 2: Select Document Type & Analyze</h3>
+                <div class="space-y-2">
+                    <label for="documentType" class="block text-sm font-medium">Select Document Type</label>
+                    <select id="documentType" class="input-field w-full">
+                        <option value="">Select document type</option>
+                        <option value="Passport">Passport</option>
+                        <option value="PAN Card">PAN Card</option>
+                        <option value="Voter ID Card">Voter ID Card</option>
+                        <option value="Driving License">Driving License</option>
+                        <option value="Bank Statement">Bank Statement</option>
+                        <option value="Death Certificate">Death Certificate</option>
+                        <option value="Bills">Bills</option>
+                    </select>
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" id="resetBtn" class="btn" onclick="resetForm()" style="background-color: hsl(var(--secondary)); color: hsl(var(--secondary-foreground));">Reset</button>
+                    <button type="button" id="analyzeBtn" class="btn btn-primary flex-1" disabled>Analyze Documents</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="alert alert-destructive hidden">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                </svg>
+                <div>
+                    <h4 style="font-weight: 600;">Error</h4>
+                    <p id="errorMessage" style="font-size: 0.875rem;"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingSection" class="hidden card bg-card border-border flex flex-col items-center justify-center py-8">
+            <div class="spinner"></div>
+            <p class="mt-4 text-muted-foreground" id="loadingMessage">Processing...</p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden space-y-6">
+            <div id="resultsList"></div>
+            <div class="flex gap-2">
+                <button id="downloadBtn" class="btn btn-primary" onclick="downloadResults()">Download Report</button>
+                <button id="resetBtn2" class="btn" style="background-color: hsl(var(--secondary)); color: hsl(var(--secondary-foreground));" onclick="resetForm()">Analyze Another</button>
+            </div>
+        </div>
+
+        <!-- Privacy Notice -->
+        <div class="card bg-accent/20 border-border text-sm">
+            <p class="text-muted-foreground"><strong>Privacy Notice:</strong> Your documents are analyzed securely and never stored permanently. All data is processed according to our privacy policy.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedFiles = [];
+let uploadedFileIds = [];
+let analysisResults = [];
+
+const uploadZone = document.getElementById('uploadDropZone');
+const fileInput = document.getElementById('documentFile');
+const uploadBtn = document.getElementById('uploadBtn');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const documentTypeSelect = document.getElementById('documentType');
+
+// File selection handlers
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', e => { 
+    e.preventDefault(); 
+    uploadZone.style.backgroundColor = 'hsl(var(--accent))'; 
+});
+uploadZone.addEventListener('dragleave', () => { 
+    uploadZone.style.backgroundColor = ''; 
+});
+uploadZone.addEventListener('drop', e => { 
+    e.preventDefault(); 
+    uploadZone.style.backgroundColor = ''; 
+    handleFileSelection(e.dataTransfer.files); 
+});
+fileInput.addEventListener('change', e => handleFileSelection(e.target.files));
+
+function handleFileSelection(files) {
+    const maxSize = 5 * 1024 * 1024;
+    const previewContainer = document.getElementById('previewContainer');
+    const filePreviewList = document.getElementById('filePreviewList');
+
+    for (let file of files) {
+        if (file.size > maxSize) { 
+            showError(`"${file.name}" exceeds 5MB limit.`);
+            continue; 
+        }
+        
+        selectedFiles.push(file);
+        
+        const reader = new FileReader();
+        reader.onload = e => {
+            const preview = document.createElement('div');
+            preview.className = 'file-preview';
+            preview.innerHTML = `
+                <img src="${e.target.result}" alt="Preview"/>
+                <button type="button" class="remove-btn" onclick="removeFile(${selectedFiles.indexOf(file)})">×</button>
+            `;
+            filePreviewList.appendChild(preview);
+        };
+        if (file.type.startsWith('image/')) reader.readAsDataURL(file);
+    }
+
+    if (selectedFiles.length > 0) {
+        previewContainer.classList.remove('hidden');
+        uploadBtn.disabled = false;
+    }
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    updateFilePreviews();
+    if (selectedFiles.length === 0) {
+        document.getElementById('previewContainer').classList.add('hidden');
+        uploadBtn.disabled = true;
+    }
+}
+
+function updateFilePreviews() {
+    const filePreviewList = document.getElementById('filePreviewList');
+    filePreviewList.innerHTML = '';
+    selectedFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.createElement('div');
+            preview.className = 'file-preview';
+            preview.innerHTML = `
+                <img src="${e.target.result}" alt="Preview"/>
+                <button type="button" class="remove-btn" onclick="removeFile(${index})">×</button>
+            `;
+            filePreviewList.appendChild(preview);
+        };
+        if (file.type.startsWith('image/')) reader.readAsDataURL(file);
+    });
+}
+
+// Upload files to server
+uploadBtn.addEventListener('click', async () => {
+    if (selectedFiles.length === 0) {
+        showError("Please select files to upload.");
+        return;
+    }
+
+    document.getElementById('loadingSection').classList.remove('hidden');
+    document.getElementById('loadingMessage').textContent = 'Uploading files...';
+    document.getElementById('errorAlert').classList.add('hidden');
+    uploadBtn.disabled = true;
+
+    try {
+        // Convert files to data URIs
+        const filesData = await Promise.all(selectedFiles.map(file => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve({ name: file.name, dataUri: reader.result });
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }));
+
+        // Upload to server
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ files: filesData })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Upload failed');
+        }
+
+        const data = await response.json();
+        uploadedFileIds = data.files;
+
+        // Show analyze section
+        document.getElementById('loadingSection').classList.add('hidden');
+        document.getElementById('analyzeSection').classList.remove('hidden');
+        uploadBtn.classList.add('hidden');
+        documentTypeSelect.addEventListener('change', () => {
+            analyzeBtn.disabled = !documentTypeSelect.value;
+        });
+
+        showSuccess(`Successfully uploaded ${uploadedFileIds.length} file(s). Now select document type and analyze.`);
+
+    } catch (error) {
+        console.error('Upload error:', error);
+        showError(`Upload failed: ${error.message}`);
+        document.getElementById('loadingSection').classList.add('hidden');
+        uploadBtn.disabled = false;
+    }
+});
+
+// Analyze documents
+analyzeBtn.addEventListener('click', async () => {
+    const documentType = documentTypeSelect.value;
+    
+    if (!documentType) {
+        showError("Please select a document type.");
+        return;
+    }
+
+    if (uploadedFileIds.length === 0) {
+        showError("No files uploaded. Please upload files first.");
+        return;
+    }
+
+    document.getElementById('uploadSection').classList.add('hidden');
+    document.getElementById('loadingSection').classList.remove('hidden');
+    document.getElementById('loadingMessage').textContent = 'Analyzing documents with AI...';
+    document.getElementById('errorAlert').classList.add('hidden');
+
+    try {
+        const response = await fetch('/api/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ documentType })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Analysis failed');
+        }
+
+        const data = await response.json();
+        analysisResults = data.results;
+        displayResults();
+
+    } catch (error) {
+        console.error('Analysis error:', error);
+        showError(`Analysis failed: ${error.message}`);
+        document.getElementById('loadingSection').classList.add('hidden');
+        document.getElementById('uploadSection').classList.remove('hidden');
+    }
+});
+
+function displayResults() {
+    document.getElementById('loadingSection').classList.add('hidden');
+    document.getElementById('resultsSection').classList.remove('hidden');
+
+    const resultsList = document.getElementById('resultsList');
+    resultsList.innerHTML = '';
+
+    analysisResults.forEach((result, idx) => {
+        const category = result.category || 'ERROR';
+        const confidence = result.confidence || 0;
+        const categoryClass = `category-${category.toLowerCase().replace('_', '-')}`;
+        const checks = result.verificationChecks || {};
+        const detectedLanguage = result.detectedLanguage || 'unknown';
+        const hasTranslation = result.extractedText !== result.translatedText && result.translatedText;
+
+        // Create verification checks HTML
+        const checksHTML = `
+            <div class="verification-checks">
+                ${createCheckItem('Security Features', checks.has_security_features)}
+                ${createCheckItem('Format Match', checks.format_matches_template)}
+                ${createCheckItem('Text Legible', checks.text_is_legible)}
+                ${createCheckItem('No Tampering', checks.no_tampering_signs)}
+                ${createCheckItem('Quality OK', checks.quality_acceptable)}
+                ${createCheckItem('Dates Valid', checks.dates_are_valid)}
+            </div>
+        `;
+
+        const resultCard = document.createElement('div');
+        resultCard.className = 'card bg-card border-border';
+        resultCard.innerHTML = `
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <h3 class="font-headline text-lg font-semibold">${result.documentName}</h3>
+                    <p class="text-sm text-muted-foreground">${result.documentType}</p>
+                    <p class="text-xs text-muted-foreground mt-1">Processed: ${result.processDateTime}</p>
+                </div>
+                <div class="text-right">
+                    <span class="badge ${categoryClass} text-lg">${category}</span>
+                    <p class="text-sm text-muted-foreground mt-1">Confidence: ${confidence}%</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="font-medium">Status:</span>
+                    <span class="badge ${result.status === 'LEGIT' ? 'badge-success' : (result.status === 'SUSPICIOUS' ? 'badge-warning' : 'badge-destructive')}">${result.status}</span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h4 class="font-medium mb-2">Verification Checks</h4>
+                ${checksHTML}
+            </div>
+
+            <div class="accordion-item">
+                <button type="button" class="accordion-trigger" onclick="toggleAccordion(this)">
+                    <span>View Details</span>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                    </svg>
+                </button>
+                <div class="accordion-content">
+                    <div class="space-y-3 text-sm">
+                        <div>
+                            <p class="font-medium mb-1">Analysis Reasoning</p>
+                            <p class="text-muted-foreground">${result.reasoning}</p>
+                        </div>
+                        ${result.extractedText ? `
+                        <div>
+                            <p class="font-medium mb-1">
+                                Extracted Text
+                                ${detectedLanguage !== 'en' && detectedLanguage !== 'unknown' ? `<span class="language-badge">Detected: ${detectedLanguage.toUpperCase()}</span>` : ''}
+                            </p>
+                            <p class="text-muted-foreground bg-accent rounded p-2 whitespace-pre-wrap">${result.extractedText}</p>
+                        </div>
+                        ` : ''}
+                        ${hasTranslation ? `
+                        <div>
+                            <p class="font-medium mb-1">Translation (English)</p>
+                            <p class="text-muted-foreground bg-accent rounded p-2 whitespace-pre-wrap">${result.translatedText}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+        resultsList.appendChild(resultCard);
+    });
+}
+
+function createCheckItem(label, passed) {
+    const iconSVG = passed 
+        ? `<svg class="check-icon check-pass" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>`
+        : `<svg class="check-icon check-fail" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>`;
+    
+    return `
+        <div class="check-item">
+            ${iconSVG}
+            <span class="check-label">${label}</span>
+        </div>
+    `;
+}
+
+function toggleAccordion(btn) {
+    const content = btn.nextElementSibling;
+    const isOpen = content.classList.contains('open');
+    content.classList.toggle('open', !isOpen);
+    btn.classList.toggle('open', !isOpen);
+}
+
+function resetForm() {
+    selectedFiles = [];
+    uploadedFileIds = [];
+    analysisResults = [];
+    fileInput.value = '';
+    documentTypeSelect.value = '';
+    
+    document.getElementById('previewContainer').classList.add('hidden');
+    document.getElementById('filePreviewList').innerHTML = '';
+    document.getElementById('uploadBtn').disabled = true;
+    document.getElementById('uploadBtn').classList.remove('hidden');
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('analyzeSection').classList.add('hidden');
+    
+    document.getElementById('uploadSection').classList.remove('hidden');
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('loadingSection').classList.add('hidden');
+    document.getElementById('errorAlert').classList.add('hidden');
+}
+
+function showError(message) {
+    const errorAlert = document.getElementById('errorAlert');
+    document.getElementById('errorMessage').textContent = message;
+    errorAlert.classList.remove('hidden');
+    setTimeout(() => errorAlert.classList.add('hidden'), 7000);
+}
+
+function showSuccess(message) {
+    console.log('✓ ' + message);
+}
+
+async function downloadResults() {
+    try {
+        const a = document.createElement('a');
+        a.href = '/download-report';
+        a.download = 'verifai_report.csv';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    } catch (err) {
+        showError('Failed to download report: ' + err.message);
+    }
+}
+</script>
+</body>
+</html> 
